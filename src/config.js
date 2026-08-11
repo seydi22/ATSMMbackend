@@ -1,12 +1,17 @@
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
-const uploadsRoot = path.join(__dirname, "..", "uploads");
+const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+const uploadsRoot = isVercel
+  ? path.join("/tmp", "ats-uploads")
+  : path.join(__dirname, "..", "uploads");
 
 module.exports = {
   port: Number(process.env.PORT) || 4000,
   mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/ats_portal",
   jwtSecret: process.env.JWT_SECRET || "ats-portal-dev-secret",
+  isVercel,
+  frontendOrigin: process.env.FRONTEND_ORIGIN || "*",
   operator: {
     username: process.env.OPERATOR_USERNAME || "admin",
     password: process.env.OPERATOR_PASSWORD || "admin123",
