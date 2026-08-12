@@ -215,9 +215,14 @@ router.post("/:id/envoyer-demande-ov", async (req, res) => {
     const journee = await Journee.findById(req.params.id);
     if (!journee) return res.status(404).json({ error: "Journée introuvable" });
 
-    if (!["brouillon", "demande_ov_envoyee"].includes(journee.statut)) {
+    if (journee.statut !== "brouillon") {
       return res.status(400).json({
-        error: `Impossible d'envoyer la demande OV depuis le statut "${journee.statut}"`,
+        error:
+          journee.statut === "demande_ov_envoyee" ||
+          journee.statut === "ov_recue" ||
+          journee.statut === "envoye_banque"
+            ? "La demande d'ordre de virement a déjà été envoyée"
+            : `Impossible d'envoyer la demande OV depuis le statut "${journee.statut}"`,
       });
     }
 
@@ -283,14 +288,12 @@ router.post("/:id/upload-ov", uploadOv.single("ov"), async (req, res) => {
     const journee = await Journee.findById(req.params.id);
     if (!journee) return res.status(404).json({ error: "Journée introuvable" });
 
-    if (
-      !["demande_ov_envoyee", "ov_recue", "envoye_banque"].includes(
-        journee.statut
-      )
-    ) {
+    if (journee.statut !== "demande_ov_envoyee") {
       return res.status(400).json({
         error:
-          "Envoyez d'abord la demande d'ordre de virement avant d'uploader l'OV",
+          journee.statut === "envoye_banque" || journee.statut === "ov_recue"
+            ? "L'envoi à la banque a déjà été effectué"
+            : "Envoyez d'abord la demande d'ordre de virement avant d'uploader l'OV",
       });
     }
 
