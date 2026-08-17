@@ -83,23 +83,42 @@ function parseExcelBuffer(buffer) {
     throw new Error("Le fichier Excel ne contient aucune ligne de données");
   }
 
-  if (!("Reason Type" in rows[0]) && !("Receipt No." in rows[0])) {
+  if (!("Details" in (rows[0] || {}))) {
     throw new Error(
-      "Colonnes attendues introuvables (Receipt No., Paid In, Reason Type). Vérifiez le format de l'export."
+      "La colonne 'Details' est absente du fichier Excel. Elle est obligatoire pour distinguer Douane et Trésor."
+    );
+  }
+
+  if (!("Receipt No." in rows[0])) {
+    throw new Error(
+      "Colonnes attendues introuvables (Receipt No., Paid In, Details). Vérifiez le format de l'export."
     );
   }
 
   const transactions = [];
+  const detailsVides = [];
+
   for (const row of rows) {
     const receiptNo = row["Receipt No."];
     const paidIn = toNumber(row["Paid In"]);
     if (receiptNo == null || receiptNo === "" || paidIn == null) continue;
 
+    const detailsRaw = row["Details"];
+    const details =
+      detailsRaw != null && String(detailsRaw).trim() !== ""
+        ? String(detailsRaw).trim()
+        : "";
+
+    if (!details) {
+      detailsVides.push(String(receiptNo));
+      continue;
+    }
+
     const dateTx = parseCompletionDate(row["Completion Time"]);
 
     transactions.push({
       receiptNo: String(receiptNo),
-      details: row["Details"] != null ? String(row["Details"]) : String(receiptNo),
+      details,
       paidIn,
       reasonType: row["Reason Type"] != null ? String(row["Reason Type"]) : "",
       completionTime:
@@ -108,8 +127,19 @@ function parseExcelBuffer(buffer) {
     });
   }
 
+  if (detailsVides.length) {
+    const sample = detailsVides.slice(0, 10).join(", ");
+    const more =
+      detailsVides.length > 10 ? ` (+${detailsVides.length - 10} autres)` : "";
+    throw new Error(
+      `Colonne Details vide sur ${detailsVides.length} transaction(s) — import refusé. ` +
+        `Receipt No. concernés : ${sample}${more}. ` +
+        `Corrigez le fichier Excel avant de réimporter.`
+    );
+  }
+
   if (!transactions.length) {
-    throw new Error("Aucune transaction valide (Receipt No. + Paid In) trouvée");
+    throw new Error("Aucune transaction valide (Receipt No. + Paid In + Details) trouvée");
   }
 
   const fallbackDate = new Date();
@@ -127,7 +157,7 @@ function parseExcelBuffer(buffer) {
       });
     }
     const bucket = byDay.get(key);
-    if (tx.reasonType === config.reasonDouane) bucket.douane.push(tx);
+    if (config.isDouaneDetails(tx.details)) bucket.douane.push(tx);
     else bucket.tresor.push(tx);
   }
 
@@ -148,8 +178,8 @@ function parseExcelBuffer(buffer) {
   const dateDebut = detailsParJour[0]?.date || fallbackDate;
   const dateFin = detailsParJour[detailsParJour.length - 1]?.date || dateDebut;
 
-  const douaneTx = transactions.filter((t) => t.reasonType === config.reasonDouane);
-  const tresorTx = transactions.filter((t) => t.reasonType !== config.reasonDouane);
+  const douaneTx = transactions.filter((t) => config.isDouaneDetails(t.details));
+  const tresorTx = transactions.filter((t) => !config.isDouaneDetails(t.details));
 
   // Nettoyer dateTx avant stockage (pas dans le schéma transactions)
   const clean = (list) =>

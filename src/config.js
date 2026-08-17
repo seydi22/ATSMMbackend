@@ -30,7 +30,13 @@ module.exports = {
     ov: path.join(uploadsRoot, "ov"),
     xml: path.join(uploadsRoot, "xml"),
   },
-  reasonDouane: "Customer Pay Customs Fee",
+  reasonDouane: null, // obsolète : filtre via Details (DGD / 26)
+  isDouaneDetails(details) {
+    const ref = String(details || "")
+      .trim()
+      .toUpperCase();
+    return ref.startsWith("DGD") || ref.startsWith("26");
+  },
   defaults: {
     bicBnm: "BQNMMRMR",
     bicBcm: "BCEMMRMR",
