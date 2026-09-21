@@ -114,7 +114,7 @@ function buildDemandeOvMail(journee, settings) {
 
 function buildBanqueMail(journee, settings) {
   const periode = periodeLabel(journee);
-  const subject = `Fichiers ATS + OV — journée comptable ${periode}`;
+  const subject = `Moov Money Fichiers ATS + OV — journée comptable ${periode}`;
   const signature = (settings.signatureMail || "").replace(/\n/g, "<br/>");
 
   const html = `

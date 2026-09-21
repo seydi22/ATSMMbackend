@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -17,6 +18,9 @@ for (const dir of Object.values(config.uploads)) {
 
 const app = express();
 
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: config.frontendOrigin === "*" ? true : config.frontendOrigin.split(","),
@@ -25,7 +29,7 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 if (!config.isVercel) {
-  app.use(morgan("dev"));
+  app.use(morgan(config.nodeEnv === "production" ? "combined" : "dev"));
 }
 
 // Cache de connexion Mongo pour Vercel (serverless)
@@ -54,15 +58,6 @@ app.use(async (_req, _res, next) => {
   }
 });
 
-app.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "ats-portal-backend",
-    message: "API ATS Portal opérationnelle",
-    health: "/api/health",
-  });
-});
-
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
@@ -71,9 +66,34 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+if (!config.serveFrontend) {
+  app.get("/", (_req, res) => {
+    res.json({
+      ok: true,
+      service: "ats-portal-backend",
+      message: "API ATS Portal opérationnelle",
+      health: "/api/health",
+    });
+  });
+}
+
 app.use("/api/auth", authRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/journees", journeesRoutes);
+
+if (config.serveFrontend) {
+  const dist = config.frontendDist;
+  if (fs.existsSync(dist)) {
+    app.use(express.static(dist));
+    app.use((req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") return next();
+      if (req.path.startsWith("/api")) return next();
+      res.sendFile(path.join(dist, "index.html"));
+    });
+  } else {
+    console.warn("SERVE_FRONTEND=true mais dist introuvable:", dist);
+  }
+}
 
 app.use((err, _req, res, _next) => {
   console.error(err);

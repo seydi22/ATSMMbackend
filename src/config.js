@@ -8,9 +8,15 @@ const uploadsRoot = isVercel
 
 module.exports = {
   port: Number(process.env.PORT) || 4000,
+  host: process.env.HOST || "0.0.0.0",
+  nodeEnv: process.env.NODE_ENV || "development",
   mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/ats_portal",
   jwtSecret: process.env.JWT_SECRET || "ats-portal-dev-secret",
   isVercel,
+  serveFrontend: process.env.SERVE_FRONTEND === "true",
+  frontendDist:
+    process.env.FRONTEND_DIST ||
+    path.join(__dirname, "..", "..", "frontend", "dist"),
   frontendOrigin: process.env.FRONTEND_ORIGIN || "*",
   operator: {
     username: process.env.OPERATOR_USERNAME || "admin",
@@ -30,12 +36,15 @@ module.exports = {
     ov: path.join(uploadsRoot, "ov"),
     xml: path.join(uploadsRoot, "xml"),
   },
-  reasonDouane: null, // obsolète : filtre via Details (DGD / 26)
+  reasonDouane: null, // obsolète : filtre via Details
   isDouaneDetails(details) {
     const ref = String(details || "")
       .trim()
       .toUpperCase();
-    return ref.startsWith("DGD") || ref.startsWith("26");
+    if (ref.startsWith("DGD") || ref.startsWith("26")) return true;
+    // TPE douane : référence hex (ex. 5B357111E24648AEE06400144FF80EA6)
+    if (/^[0-9A-F]{20,}$/.test(ref) && ref.includes("E064")) return true;
+    return false;
   },
   defaults: {
     bicBnm: "BQNMMRMR",

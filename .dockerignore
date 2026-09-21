@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+uploads/excel/*
+uploads/ov/*
+uploads/xml/*
+!uploads/excel/.gitkeep
+!uploads/ov/.gitkeep
+!uploads/xml/.gitkeep
+.git
+*.md

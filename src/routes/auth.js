@@ -4,7 +4,36 @@ const config = require("../config");
 
 const router = express.Router();
 
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 8;
+const loginAttempts = new Map();
+
+function clientIp(req) {
+  return req.ip || req.socket.remoteAddress || "unknown";
+}
+
+function isLoginRateLimited(ip) {
+  const now = Date.now();
+  const recent = (loginAttempts.get(ip) || []).filter((t) => now - t < LOGIN_WINDOW_MS);
+  loginAttempts.set(ip, recent);
+  return recent.length >= LOGIN_MAX_ATTEMPTS;
+}
+
+function recordLoginAttempt(ip) {
+  const list = loginAttempts.get(ip) || [];
+  list.push(Date.now());
+  loginAttempts.set(ip, list);
+}
+
 router.post("/login", (req, res) => {
+  const ip = clientIp(req);
+  if (isLoginRateLimited(ip)) {
+    return res.status(429).json({
+      error: "Trop de tentatives. Réessayez dans 15 minutes.",
+    });
+  }
+  recordLoginAttempt(ip);
+
   const { username, password } = req.body || {};
 
   if (

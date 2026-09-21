@@ -40,6 +40,7 @@ const ovStorage = multer.diskStorage({
 
 const uploadExcel = multer({
   storage: excelStorage,
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ok = /\.(xlsx|xls|csv)$/i.test(file.originalname);
     cb(ok ? null : new Error("Fichier Excel attendu (.xls / .xlsx)"), ok);
@@ -48,6 +49,7 @@ const uploadExcel = multer({
 
 const uploadOv = multer({
   storage: ovStorage,
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ok = /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(file.originalname);
     cb(ok ? null : new Error("Photo/PDF OV attendu"), ok);
