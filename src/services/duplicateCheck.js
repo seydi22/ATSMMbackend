@@ -1,4 +1,5 @@
 const Journee = require("../models/Journee");
+const config = require("../config");
 
 const STATUTS_TRANSFERES = ["demande_ov_envoyee", "ov_recue", "envoye_banque"];
 
@@ -118,6 +119,9 @@ function buildDoublonMessage({ datesEnDoublon, receiptsEnDoublon }) {
 }
 
 async function assertPasDeDoublon(parsed, options = {}) {
+  if (config.skipDuplicateCheck) {
+    return { datesEnDoublon: [], receiptsEnDoublon: [], hasDoublon: false, skipped: true };
+  }
   const result = await findDoublons(parsed, options);
   if (result.hasDoublon) {
     const error = new Error(buildDoublonMessage(result));

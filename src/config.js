@@ -18,6 +18,9 @@ module.exports = {
     process.env.FRONTEND_DIST ||
     path.join(__dirname, "..", "..", "frontend", "dist"),
   frontendOrigin: process.env.FRONTEND_ORIGIN || "*",
+  // Temporaire : remettre SKIP_DUPLICATE_CHECK=false après régularisation
+  skipDuplicateCheck: process.env.SKIP_DUPLICATE_CHECK !== "false",
+  rtgsThreshold: Number(process.env.RTGS_THRESHOLD) || 1_000_000,
   operator: {
     username: process.env.OPERATOR_USERNAME || "admin",
     password: process.env.OPERATOR_PASSWORD || "admin123",

@@ -7,6 +7,10 @@ function pad2(n) {
   return String(n).padStart(2, "0");
 }
 
+function resolveClearingSystem(totalAmount) {
+  return Number(totalAmount) >= config.rtgsThreshold ? "RTGS" : config.defaults.clearingSystem;
+}
+
 function formatDateParts(date = new Date()) {
   const y = date.getFullYear();
   const m = pad2(date.getMonth() + 1);
@@ -47,7 +51,7 @@ function buildXmlDocument(transactions, compteCrediteur, settings, dateParts) {
 
   const sttlmInf = grpHdr.ele("SttlmInf");
   sttlmInf.ele("SttlmMtd").txt(config.defaults.settlementMethod);
-  sttlmInf.ele("ClrSys").ele("Prtry").txt(config.defaults.clearingSystem);
+  sttlmInf.ele("ClrSys").ele("Prtry").txt(resolveClearingSystem(total));
 
   grpHdr
     .ele("InstgAgt")
